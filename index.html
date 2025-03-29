@@ -18,22 +18,132 @@
             max-width: 90%;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
+        .error-message {
+            max-width: 80%;
+            margin: 20px auto;
+            padding: 15px;
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        .loading {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #555;
+            animation: spin 1s ease-in-out infinite;
+            margin: 30px auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
     <div>
-        <img id="daily-image" alt="今日图片">
+        <div id="loading" class="loading"></div>
+        <img id="daily-image" alt="单向历" style="display: none;">
+        <div id="error-message" class="error-message">
+            图片无法加载，可能是服务器上没有今天的图片。
+        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = (now.getMonth() + 1).toString().padStart(2, '0');
-            const day = now.getDate().toString().padStart(2, '0');
-            const monthDay = month + day;
+            const imgElement = document.getElementById('daily-image');
+            const errorElement = document.getElementById('error-message');
+            const loadingElement = document.getElementById('loading');
             
-            document.getElementById('daily-image').src = `https://img.owspace.com/Public/uploads/Download/${year}/${monthDay}.jpg`;
+            function showLoading() {
+                loadingElement.style.display = 'block';
+                imgElement.style.display = 'none';
+                errorElement.style.display = 'none';
+            }
+            
+            function showImage() {
+                loadingElement.style.display = 'none';
+                imgElement.style.display = 'block';
+                errorElement.style.display = 'none';
+            }
+            
+            function showError() {
+                loadingElement.style.display = 'none';
+                imgElement.style.display = 'none';
+                errorElement.style.display = 'block';
+            }
+            
+            // 尝试加载图片的函数
+            function loadImage(date) {
+                const now = date || new Date();
+                const year = now.getFullYear();
+                const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                const day = now.getDate().toString().padStart(2, '0');
+                const monthDay = month + day;
+                
+                showLoading();
+                
+                // 使用三种不同的方法尝试加载图片
+                tryLoadMethods(year, monthDay, 0);
+            }
+            
+            // 尝试不同的加载方法
+            function tryLoadMethods(year, monthDay, methodIndex) {
+                // 重置之前的事件监听器
+                imgElement.onload = null;
+                imgElement.onerror = null;
+                
+                // 三种不同的加载方法
+                const methods = [
+                    // 方法1: 直接从源站加载
+                    `https://img.owspace.com/Public/uploads/Download/${year}/${monthDay}.jpg`,
+                    // 方法2: 使用我们自己的API代理
+                    `/api/proxy?year=${year}&date=${monthDay}`,
+                    // 方法3: 使用公共CORS代理
+                    `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://img.owspace.com/Public/uploads/Download/${year}/${monthDay}.jpg`)}`
+                ];
+                
+                // 如果已经尝试了所有方法
+                if (methodIndex >= methods.length) {
+                    console.log('所有方法都已尝试，尝试加载前一天的图片');
+                    tryPreviousDay();
+                    return;
+                }
+                
+                const currentMethod = methods[methodIndex];
+                console.log(`尝试方法 ${methodIndex + 1}: ${currentMethod}`);
+                
+                // 设置新的图片源
+                imgElement.src = currentMethod;
+                
+                // 图片加载成功
+                imgElement.onload = function() {
+                    console.log(`方法 ${methodIndex + 1} 成功加载图片`);
+                    showImage();
+                };
+                
+                // 图片加载失败
+                imgElement.onerror = function() {
+                    console.log(`方法 ${methodIndex + 1} 失败，尝试下一个方法`);
+                    // 尝试下一个方法
+                    tryLoadMethods(year, monthDay, methodIndex + 1);
+                };
+            }
+            
+            // 尝试加载前一天的图片
+            function tryPreviousDay() {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                console.log('尝试加载前一天的图片');
+                loadImage(yesterday);
+            }
+            
+            // 开始加载今天的图片
+            loadImage();
         });
     </script>
 </body>

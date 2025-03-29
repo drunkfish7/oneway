@@ -1,0 +1,16 @@
+{
+  "name": "oneway-daily-image",
+  "version": "1.0.0",
+  "description": "显示单向历每日图片",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel deploy --prod"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.0"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+} 
